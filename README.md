@@ -1,10 +1,5 @@
 
 ```
-docker build -t mysql-backup-s3 .
-docker run -d --name mysql-backup-s3 mysql-backup-s3 
-```
-
-```
 MYSQL_ROOT_PASSWORD=my-secret-pw
 
 # start mysql server
