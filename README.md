@@ -5,7 +5,7 @@ MYSQL_ROOT_PASSWORD=my-secret-pw
 # start mysql server
 docker run -d -e MYSQL_ROOT_PASSWORD="$MYSQL_ROOT_PASSWORD" --name mysql mysql:5.6
 
-# link with mysql server
+# automated backup to s3://bucketname/mysql-backup/ everyday, expire after 30 days
 docker run -d \
 -e AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" \
 -e AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" \
@@ -16,6 +16,9 @@ docker run -d \
 -e MYSQL_ROOT_PASSWORD="$MYSQL_ROOT_PASSWORD" \
 -e EXPIRE_DAY_AFTER=30 \
 --name mysql-backup-s3 keisato/mysql-backup-s3
+
+# backup manually
+docker exec -it mysql-backup-s3 restore
 
 # restore 
 docker exec -it mysql-backup-s3 restore
