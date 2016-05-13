@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+set -eu
+
+test -s /etc/cron-envs && . "$_"
+
+BACKUP_DIR="/var/mysql-backup-s3"
+
+mkdir -p "$BACKUP_DIR"
+aws s3 sync "$S3_PATH" "$BACKUP_DIR" --delete
+
+LATEST=$(ls -r "$BACKUP_DIR"/*.sql.gz | tail -n1)
+gunzip -c "$LATEST" | mysql -h"$MYSQL_HOST" -uroot -p"$MYSQL_ROOT_PASSWORD"

@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+set -eu
+
+test -s /etc/cron-envs && . "$_"
+
+log() { echo "$(date):" "$@"; }
+
+BACKUP_DIR="/var/mysql-backup-s3"
+FILE_NAME="mysqldump_$(date +%Y%m%d%H%M).sql.gz"
+
+mkdir -p "$BACKUP_DIR"
+
+mysqldump -h"$MYSQL_HOST" -uroot -p"$MYSQL_ROOT_PASSWORD" --all-databases --add-drop-database | gzip > "$BACKUP_DIR/$FILE_NAME" && echo "$BACKUP_DIR/$FILE_NAME created"
+
+find "$BACKUP_DIR" -type f -name '*.sql.gz' ${EXPIRE_DAY_AFTER:+-mtime +$EXPIRE_DAY_AFTER} -daystart -print0 | xargs -0 rm -rf
+
+aws s3 sync "$BACKUP_DIR" "$S3_PATH" --delete
+
+echo "$(date): done"
