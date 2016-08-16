@@ -4,4 +4,8 @@
 rsyslogd
 cron
 touch /var/log/cron.log
+
+# trigger one time right after started
+/usr/local/bin/backup >> /var/log/cron.log 2>&1
+
 tail -F /var/log/syslog /var/log/cron.log

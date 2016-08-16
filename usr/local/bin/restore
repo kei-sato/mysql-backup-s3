@@ -4,10 +4,20 @@ set -eu
 
 test -s /etc/cron-envs && . "$_"
 
+log() { echo "$(date):" "$@"; }
+
 BACKUP_DIR="/var/mysql-backup-s3"
 
 mkdir -p "$BACKUP_DIR"
-aws s3 sync "$S3_PATH" "$BACKUP_DIR" --delete
 
-LATEST=$(ls -r "$BACKUP_DIR"/*.sql.gz | tail -n1)
-gunzip -c "$LATEST" | mysql -h"$MYSQL_HOST" -uroot -p"$MYSQL_ROOT_PASSWORD"
+# like --delete or --dryrun
+aws s3 sync "$S3_PATH" "$BACKUP_DIR" "$@"
+
+# nothing to be done if directory is empty
+[ $(ls "$BACKUP_DIR" | wc -l) -eq 0 ] && {
+  log "$BACKUP_DIR is empty"
+  exit
+}
+
+LATEST=$(ls -rt "$BACKUP_DIR"/*.sql.gz | tail -n1)
+gunzip -c "$LATEST" | mysql -h"$MYSQL_HOST" -uroot -p"$MYSQL_ROOT_PASSWORD" && log "restored $LATEST"

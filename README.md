@@ -29,5 +29,11 @@ docker exec -it mysql-backup-s3 backup
 docker exec -it mysql-backup-s3 restore
 ```
 
+# build manually
+
+```
+docker build -t mysql-backup-s3 .
+```
+
 # links
 - http://qiita.com/taiko19xx/items/215b9943c8aa0d8edcf6
