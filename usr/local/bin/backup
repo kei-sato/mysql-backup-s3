@@ -8,13 +8,17 @@ log() { echo "$(date):" "$@"; }
 
 BACKUP_DIR="/var/mysql-backup-s3"
 FILE_NAME="mysqldump_$(date +%Y%m%d%H%M).sql.gz"
+TEMP_FILE="$(tempfile)"
 
 mkdir -p "$BACKUP_DIR"
 
 # restore first if backup directory is empty (right after like an another instance was launched)
 [ $(ls "$BACKUP_DIR" | wc -l) -eq 0 ] && /usr/local/bin/restore
 
-mysqldump -h"$MYSQL_HOST" -uroot -p"$MYSQL_ROOT_PASSWORD" --all-databases --add-drop-database | gzip > "$BACKUP_DIR/$FILE_NAME" && log "$BACKUP_DIR/$FILE_NAME created"
+mysqldump -h"$MYSQL_HOST" -uroot -p"$MYSQL_ROOT_PASSWORD" --all-databases --add-drop-database >> "$TEMP_FILE"
+mysqldumpgrants -h"$MYSQL_HOST" -uroot -p"$MYSQL_ROOT_PASSWORD" >> "$TEMP_FILE"
+gzip < "$TEMP_FILE" > "$BACKUP_DIR/$FILE_NAME" && log "$BACKUP_DIR/$FILE_NAME created"
+rm "$TEMP_FILE"
 
 find "$BACKUP_DIR" -type f -name '*.sql.gz' ${EXPIRE_DAY_AFTER:+-mtime +$EXPIRE_DAY_AFTER} -daystart -print0 | xargs -0 rm -rf
 
