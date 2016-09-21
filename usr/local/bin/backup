@@ -12,16 +12,23 @@ TEMP_FILE="$(tempfile)"
 
 mkdir -p "$BACKUP_DIR"
 
+cleanup() {
+  rm "$TEMP_FILE"
+  log "backup done"
+}
+
+trap cleanup EXIT INT TERM
+
 # restore first if backup directory is empty (right after like an another instance was launched)
 [ $(ls "$BACKUP_DIR" | wc -l) -eq 0 ] && /usr/local/bin/restore
 
-mysqldump -h"$MYSQL_HOST" -uroot -p"$MYSQL_ROOT_PASSWORD" --all-databases --add-drop-database >> "$TEMP_FILE"
+# get all databases except default
+databases=($(mysql -h"$MYSQL_HOST" -uroot -p"$MYSQL_ROOT_PASSWORD" --skip-column-names <<< "SELECT GROUP_CONCAT(schema_name SEPARATOR ' ') FROM information_schema.schemata WHERE schema_name NOT IN ('mysql','performance_schema','information_schema');"))
+[ ${#databases[@]} -eq 0 ] && exit 1
+mysqldump -h"$MYSQL_HOST" -uroot -p"$MYSQL_ROOT_PASSWORD" --databases "${databases[@]}" --add-drop-database >> "$TEMP_FILE"
 mysqldumpgrants -h"$MYSQL_HOST" -uroot -p"$MYSQL_ROOT_PASSWORD" >> "$TEMP_FILE"
 gzip < "$TEMP_FILE" > "$BACKUP_DIR/$FILE_NAME" && log "$BACKUP_DIR/$FILE_NAME created"
-rm "$TEMP_FILE"
 
 find "$BACKUP_DIR" -type f -name '*.sql.gz' ${EXPIRE_DAY_AFTER:+-mtime +$EXPIRE_DAY_AFTER} -daystart -print0 | xargs -0 rm -rf
 
 aws s3 sync "$BACKUP_DIR" "$S3_PATH" --delete
-
-log "backup done"
