@@ -5,6 +5,10 @@ rsyslogd
 cron
 touch /var/log/cron.log
 
+# https://github.com/phusion/baseimage-docker/issues/198
+# workaround for an error that says 'NUMBER OF HARD LINKS > 1' in /var/log/syslog
+touch /etc/crontab /etc/cron.d/*
+
 # trigger one time right after started
 /usr/local/bin/backup >> /var/log/cron.log 2>&1
 
